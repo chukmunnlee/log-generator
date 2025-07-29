@@ -6,8 +6,11 @@ class LogGenerator {
         this.logFile = config.logFile || 'app.log';
         this.maxFileSize = config.maxFileSize || 1024 * 1024; // 1MB default
         this.logInterval = config.logInterval || 1000; // 1 second default
+        this.format = config.format || 'text'; // 'text' or 'json'
         this.logLevels = ['INFO', 'WARN', 'ERROR', 'DEBUG'];
         this.services = ['auth', 'api', 'database', 'cache', 'payment', 'notification'];
+        this.userIds = [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010,
+                       1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020];
         this.messages = [
             'User login successful',
             'Database connection established',
@@ -27,10 +30,22 @@ class LogGenerator {
         const level = this.getWeightedLogLevel();
         const service = this.services[Math.floor(Math.random() * this.services.length)];
         const message = this.messages[Math.floor(Math.random() * this.messages.length)];
-        const userId = Math.floor(Math.random() * 10000);
+        const userId = this.userIds[Math.floor(Math.random() * this.userIds.length)];
         const requestId = Math.random().toString(36).substring(2, 15);
         
-        return `${timestamp} [${level}] [${service}] RequestID: ${requestId} UserID: ${userId} - ${message}\n`;
+        if (this.format === 'json') {
+            const logObject = {
+                timestamp,
+                level,
+                service,
+                requestId,
+                userId,
+                message
+            };
+            return JSON.stringify(logObject) + '\n';
+        } else {
+            return `${timestamp} [${level}] [${service}] RequestID: ${requestId} UserID: ${userId} - ${message}\n`;
+        }
     }
 
     getWeightedLogLevel() {
@@ -71,6 +86,7 @@ class LogGenerator {
     start() {
         console.log(`Starting log generator...`);
         console.log(`Log file: ${this.logFile}`);
+        console.log(`Format: ${this.format}`);
         console.log(`Max file size: ${this.maxFileSize} bytes`);
         console.log(`Base log interval: ${this.logInterval / 1000} seconds (randomized ±1-2 seconds)`);
         
@@ -103,8 +119,9 @@ function parseArgs() {
     const args = process.argv.slice(2);
     const config = {
         logFile: 'application.log',
-        maxFileSize: 1024 * 1024, // 1MB default
-        logInterval: 5000 // 5 seconds default
+        maxFileSize: 5 * 1024 * 1024, // %MB default
+        logInterval: 5000, // 5 seconds default
+        format: 'text' // default format
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -139,6 +156,24 @@ function parseArgs() {
                     process.exit(1);
                 }
                 break;
+            case '--format':
+            case '--json':
+                if (args[i] === '--json') {
+                    config.format = 'json';
+                } else if (i + 1 < args.length) {
+                    const format = args[i + 1].toLowerCase();
+                    if (format === 'json' || format === 'text') {
+                        config.format = format;
+                        i++;
+                    } else {
+                        console.error('Error: --format must be "text" or "json"');
+                        process.exit(1);
+                    }
+                } else {
+                    console.error('Error: --format requires a value (text or json)');
+                    process.exit(1);
+                }
+                break;
             case '--help':
             case '-h':
                 console.log(`
@@ -148,13 +183,16 @@ Options:
   -s, --max-file-size <size>  Maximum log file size in KB (default: 1024)
   -f, --log-file <file>       Log file name (default: application.log)
   -i, --log-interval <sec>    Base log interval in seconds (default: 5)
+      --format <format>       Output format: text or json (default: text)
+      --json                  Shorthand for --format json
   -h, --help                  Show this help message
 
 Note: Actual log intervals are randomized between 1-3 seconds around the base interval.
 
 Examples:
   node log-generator.js --max-file-size 2048 --log-file my-app.log
-  node log-generator.js -s 500 -f server.log -i 3
+  node log-generator.js -s 500 -f server.log -i 3 --json
+  node log-generator.js --format json --log-file app.json
                 `);
                 process.exit(0);
                 break;
@@ -177,10 +215,17 @@ const config = parseArgs();
 const logger = new LogGenerator(config);
 logger.start();
 
-// Stop after 30 seconds for demo
-setTimeout(() => {
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+    console.log('\nReceived SIGINT. Stopping log generator...');
     logger.stop();
-    console.log('Demo completed.');
-}, 30000);
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('\nReceived SIGTERM. Stopping log generator...');
+    logger.stop();
+    process.exit(0);
+});
 
 module.exports = LogGenerator;
