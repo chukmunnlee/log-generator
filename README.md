@@ -168,6 +168,8 @@ services:
     command: node log-generator.js --json --log-interval 2
     volumes:
       - ./logs:/app/logs
+    networks:
+      - log-network
     restart: unless-stopped
 
   # Example with Loki streaming
@@ -176,6 +178,8 @@ services:
     command: node log-generator.js --loki-url http://loki:3100/loki/api/v1/push --json
     depends_on:
       - loki
+    networks:
+      - log-network
     restart: unless-stopped
 
   # Loki log aggregation system
@@ -186,6 +190,8 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - loki-data:/loki
+    networks:
+      - log-network
     restart: unless-stopped
 
   # Grafana for viewing logs (optional)
@@ -197,11 +203,17 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana-data:/var/lib/grafana
+    networks:
+      - log-network
     restart: unless-stopped
 
 volumes:
   loki-data:
   grafana-data:
+
+networks:
+  log-network:
+    driver: bridge
 ```
 
 ## Building from Source
