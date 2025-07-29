@@ -1,6 +1,14 @@
 # Use Node.js 23 as base image
 FROM node:23
 
+# Add labels for repository association and metadata
+LABEL org.opencontainers.image.source="https://github.com/chukmunnlee/log-generator" \
+      org.opencontainers.image.url="https://github.com/chukmunnlee/log-generator" \
+      org.opencontainers.image.documentation="https://github.com/chukmunnlee/log-generator#readme" \
+      org.opencontainers.image.title="Log Generator" \
+      org.opencontainers.image.description="Node.js application that generates realistic application logs with configurable options and Loki streaming support" \
+      maintainer="Claude Code"
+
 # Set working directory
 WORKDIR /app
 
